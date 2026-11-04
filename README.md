@@ -45,6 +45,38 @@ python3 -m venv venv
 | Restart       | Left click / Space after death |
 | Quit          | **Esc** or close the window    |
 
+## Web version (pygbag)
+
+The same game can run **in the browser** via [pygbag](https://pygame-web.github.io/),
+which compiles Python + pygame to WebAssembly. The code is pygbag-aware out of
+the box:
+
+- The main loop is asynchronous (`await asyncio.sleep(0)` per frame) so the
+  WASM renderer can copy the screen to the canvas.
+- Procedural assets are pre-bundled, so none are regenerated in the browser.
+- Audio is unlocked on the first user click/keystroke (browser autoplay
+  policy).
+
+### Build it yourself
+
+```bash
+./web_build.sh      # installs pygbag in build/pygbag-venv, then builds
+python3 -m http.server -d build/web 9000   # open http://localhost:9000
+```
+
+The finished static site is written to `build/web/` — deploy that folder to any
+static host.
+
+### One-click hosting (GitHub Actions)
+
+The `.github/workflows/pygbag-pages.yml` workflow builds the game and
+**auto-deploys to GitHub Pages** on every push to `master`. Once enabled (repo
+Settings → Pages → Source: *GitHub Actions*), it will be playable at:
+
+```
+https://<your-username>.github.io/<repo-name>/
+```
+
 ## Project structure
 
 ```
@@ -53,7 +85,11 @@ flappybird-clone/
 ├── settings.py      # all tunable constants & configuration
 ├── sprites.py       # procedural sprite + sound generation
 ├── requirements.txt
-└── assets/          # generated sprites & sounds (auto-created)
+├── assets/          # generated sprites & sounds (auto-created)
+│
+├── web_build.sh     # builds the browser version with pygbag
+├── pygbag.ini       # pygbag build config (which files to ignore)
+└── build/web/       # web build output (generated, git-ignored)
 ```
 
 ## Customizing the art

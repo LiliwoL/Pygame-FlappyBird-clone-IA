@@ -4,6 +4,7 @@ Custom sprites are procedurally generated (see sprites.py) and saved under
 assets/. Run `python main.py` to play. Uses LEFT click / Space / Up to flap.
 """
 
+import asyncio
 import math
 import os
 
@@ -96,7 +97,14 @@ class Game:
     # Asset loading
     # ------------------------------------------------------------------ #
     def load_assets(self):
-        generate_all()
+        # Generate the procedural art/sounds on first run on the desktop. In
+        # the web build (pygbag) the assets are already bundled, so we skip
+        # generation entirely (avoids unnecessary file writes in the browser).
+        required = (S.BACKGROUND_SPRITE, S.CLOUD_SPRITE, S.GROUND_SPRITE,
+                    S.BIRD_SPRITE, S.PIPE_SPRITE, S.PIPE_RIM_SPRITE,
+                    S.FLAP_SOUND_FILE, S.POINT_SOUND_FILE, S.HIT_SOUND_FILE)
+        if not all(os.path.exists(p) for p in required):
+            generate_all(force=True)
         global CLOUD_IMG, CLOUD_W, CLOUD_H
         self.bg_img = pygame.image.load(S.BACKGROUND_SPRITE).convert()
         CLOUD_IMG = pygame.image.load(S.CLOUD_SPRITE).convert_alpha()
@@ -193,6 +201,7 @@ class Game:
         return True
 
     def on_action(self):
+        self._unlock_audio()
         if self.state == STATE_READY:
             self.state = STATE_PLAYING
             self.flap()
@@ -202,6 +211,23 @@ class Game:
             # small delay before allowing restart
             if self.flash_alpha == 0:
                 self.reset()
+
+    def _unlock_audio(self):
+        """Initialise the WebAudio context on the first user gesture.
+
+        Browsers block audio until a user interaction has happened, so we
+        (re)initialise the mixer here. No-op when running on the desktop.
+        """
+        try:
+            import pygbag  # only present in the web build
+        except Exception:
+            return
+        try:
+            if pygame.mixer.get_init() is None:
+                pygame.mixer.init()
+            pygame.mixer.stop()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ #
     # Update
@@ -385,7 +411,7 @@ class Game:
     # ------------------------------------------------------------------ #
     # Main loop
     # ------------------------------------------------------------------ #
-    def run(self):
+    async def run(self):
         running = True
         while running:
             for event in pygame.event.get():
@@ -394,15 +420,19 @@ class Game:
             self.update()
             self.draw()
             self.clock.tick(S.FPS)
+            # Yield to the event loop so the web (pygbag) renderer can copy
+            # the screen to the canvas. Harmless on the desktop.
+            await asyncio.sleep(0)
         pygame.quit()
 
 
 BIRD_HALF = 22          # effective collision half-size (bird sprite ~0.7 of 64px)
 
 
-def main():
-    Game().run()
+async def main():
+    game = Game()
+    await game.run()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

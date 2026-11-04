@@ -1,0 +1,56 @@
+name: Build & Deploy to GitHub Pages
+
+# Builds the game for the web with pygbag and deploys it to GitHub Pages,
+# so it can be played in the browser at:
+#   https://<owner>.github.io/<repo>/
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pygbag
+        run: pip install pygbag
+
+      - name: Build web app with pygbag
+        run: |
+          python -m pygbag \
+            --build \
+            --disable-sound-format-error \
+            --app_name "Pygame FlappyBird Clone" \
+            --title "Pygame FlappyBird Clone" \
+            .
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

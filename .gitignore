@@ -5,3 +5,7 @@ __pycache__/
 
 # per-player best score
 best_score.txt
+
+# web build artifacts (pygbag)
+build/
+*-pygbag.py
