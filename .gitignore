@@ -1,0 +1,7 @@
+# virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# per-player best score
+best_score.txt
